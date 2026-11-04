@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Editar estudiante - I.E. 7224</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'global.css' %}">
+</head>
+<body>
+        {% include "asistencia/_sidebar.html" with activo="gestion" %}
+
+    <main class="contenido">
+        <div class="pagina-cab"><div><h1>Editar estudiante</h1><p>DNI: {{ estudiante.dni }}</p></div></div>
+        <section class="panel foto-formulario">
+            <img class="foto-grande" src="{{ foto_url }}" alt="Foto de {{ estudiante.nombres }}">
+            {% if mensaje %}<p class="mensaje-exito">{{ mensaje }}</p>{% endif %}
+            {% if error %}<p class="mensaje">{{ error }}</p>{% endif %}
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <label class="etiqueta" for="id_apellidos">Apellidos</label>
+                <input class="campo-formulario" id="id_apellidos" type="text" name="apellidos" value="{{ estudiante.apellidos }}" required>
+                <label class="etiqueta" for="id_nombres">Nombres</label>
+                <input class="campo-formulario" id="id_nombres" type="text" name="nombres" value="{{ estudiante.nombres }}" required>
+                <label class="etiqueta" for="id_grado">Grado</label>
+                <input class="campo-formulario" id="id_grado" type="text" name="grado" value="{{ estudiante.grado }}" required>
+                <label class="etiqueta" for="id_seccion">Sección</label>
+                <input class="campo-formulario" id="id_seccion" type="text" name="seccion" value="{{ estudiante.seccion }}" required>
+                <label class="check-activo"><input type="checkbox" name="activo" {% if estudiante.activo %}checked{% endif %}> Estudiante activo</label>
+                <label class="etiqueta" for="id_foto">Nueva foto (opcional)</label>
+                <input class="campo-formulario" id="id_foto" type="file" name="foto" accept="image/*">
+                <p class="ayuda">JPG, JPEG, PNG o WEBP. Máximo 2 MB. Si no seleccionas una foto, se conserva la actual.</p>
+                <button class="btn btn-filtrar" type="submit">Guardar cambios</button>
+                <a class="btn btn-cancel" href="{% url 'gestion_estudiantes' %}">Volver a gestión</a>
+            </form>
+        </section>
+    </main>
+</body>
+</html>

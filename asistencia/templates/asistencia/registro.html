@@ -1,53 +1,60 @@
 <!DOCTYPE html>
+{% load static %}
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Módulo de Registro - I.E. 7224</title>
-    <!-- 1. En la sección <style> ajusta el ancho de los botones -->
-    <style>
-        body { font-family: Arial, sans-serif; background-color: #f4f7f6; padding: 20px; }
-        .container { display: flex; gap: 20px; max-width: 900px; margin: auto; }
-        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); width: 50%; }
-        input { width: 100%; padding: 10px; font-size: 18px; text-align: center; border: 2px dashed #004d40; margin-bottom: 10px; }
-        #foto-estudiante { max-width: 150px; border-radius: 8px; display: none; }
-        .btn { padding: 10px; color: white; border: none; border-radius: 5px; cursor: pointer; width: 32%; font-size: 14px; font-weight: bold; }
-        .btn-confirm { background: #1976d2; }
-        .btn-falta { background: #d84315; }
-        .btn-cancel { background: #757575; }
-        .hidden { display: none; }
-    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'global.css' %}">
 </head>
 <body>
-    <!-- Barra de navegación superior -->
-    <div style="max-width: 900px; margin: 0 auto 20px auto; text-align: right;">
-        <a href="/dashboard/" style="background: #004d40; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">📊 Ir al Panel de Tutores y Métricas</a>
-    </div>
-    <div class="container">
-        <!-- Panel Izquierdo: Lector -->
-        <div class="card">
-            <h2>Registrar Ingreso</h2>
-            <p>Escanee el código de barras o digite el DNI</p>
-            <input type="text" id="input-dni" placeholder="74852316" autofocus autocomplete="off">
-            <p id="mensaje-sistema" style="color: red;"></p>
-        </div>
 
-        <!-- Panel Derecho: Verificación Visual -->
-        <div class="card" id="panel-verificacion">
-            <h2>Verificación del estudiante</h2>
-            <img id="foto-estudiante" src="" alt="Foto">
-            <h3 id="nombre-estudiante"></h3>
-            <p id="grado-estudiante"></p>
-            
-            <!-- 2. Reemplaza el <div id="botones-accion"> por este -->
-            <div id="botones-accion" class="hidden" style="display: flex; justify-content: space-between;">
-                <button class="btn btn-confirm" onclick="enviarRegistro('confirmar')">✔ Asistencia</button>
-                <button class="btn btn-falta" onclick="enviarRegistro('falta')">⚠ Poner Falta</button>
-                <button class="btn btn-cancel" onclick="enviarRegistro('anular')">✖ Anular / Limpiar</button>
+    <!-- Barra superior (móvil) -->
+        {% include "asistencia/_sidebar.html" with activo="registro" %}
+
+    <main class="contenido">
+        <div class="pagina-cab">
+            <div>
+                <h1>Registro de ingreso</h1>
+                <p>Módulo de puerta</p>
             </div>
         </div>
-    </div>
 
-    <!-- 3. Reemplaza el <script> completo -->
+        <div class="registro-grid">
+            <!-- Panel Izquierdo: Lector -->
+            <section class="panel">
+                <h2>Registrar Ingreso</h2>
+                <p class="ayuda">Digite manualmente el DNI del estudiante</p>
+
+                <input type="text" id="input-dni" class="campo-dni" inputmode="numeric" placeholder="74852316" autofocus autocomplete="off">
+                <p id="mensaje-sistema" class="mensaje" role="alert"></p>
+            </section>
+
+            <!-- Panel Derecho: Verificación Visual -->
+            <section class="panel" id="panel-verificacion">
+                <h2>Verificación del estudiante</h2>
+                <p class="ayuda">Confirme que los datos coinciden con el alumno presente.</p>
+
+                <div class="alumno">
+                    <img id="foto-estudiante" src="" alt="Foto del estudiante">
+                    <div>
+                        <h3 id="nombre-estudiante"></h3>
+                        <p id="grado-estudiante"></p>
+                    </div>
+                </div>
+
+                <div id="botones-accion" class="acciones hidden">
+                    <button class="btn btn-confirm" onclick="enviarRegistro('confirmar')">✔ Asistencia</button>
+                    <button class="btn btn-falta" onclick="enviarRegistro('falta')">⚠ Poner falta</button>
+                    <button class="btn btn-cancel" onclick="enviarRegistro('anular')">✖ Anular / limpiar</button>
+                </div>
+            </section>
+        </div>
+    </main>
+
     <script>
         const inputDni = document.getElementById('input-dni');
         let dniActual = '';
@@ -56,12 +63,12 @@
             if (e.key === 'Enter') {
                 dniActual = this.value;
                 buscarEstudiante(dniActual);
-                this.value = ''; 
+                this.value = '';
             }
         });
 
         function buscarEstudiante(dni) {
-            fetch(`/api/buscar_estudiante/?dni=${dni}`)
+            fetch(`/api/buscar_estudiante/?dni=${encodeURIComponent(dni)}`)
                 .then(response => response.json())
                 .then(data => {
                     const mensaje = document.getElementById('mensaje-sistema');
@@ -84,29 +91,46 @@
                         mensaje.innerText = data.mensaje;
                         limpiarPantalla();
                     }
+                })
+                .catch(() => {
+                    document.getElementById('mensaje-sistema').innerText =
+                        "No se pudo consultar al estudiante.";
+                    limpiarPantalla();
                 });
         }
 
         function enviarRegistro(accion) {
-            // Lógica de anulación: Si presiona anular, no enviamos nada al backend, solo limpiamos la UI
+            // Si presiona anular, no se envía nada al backend, solo se limpia la UI
             if (accion === 'anular') {
                 limpiarPantalla();
                 return;
             }
 
-            // Para Asistencia y Falta, enviamos los datos
             fetch('/api/confirmar_ingreso/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': getCookie('csrftoken')
                 },
-                body: JSON.stringify({ dni: dniActual, accion: accion })
+                body: JSON.stringify({
+                    dni: dniActual,
+                    accion: accion,
+                    metodo: 'DNI'
+                })
             })
-            .then(response => response.json())
+            .then(async response => {
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.mensaje || "No se pudo guardar el registro.");
+                }
+                return data;
+            })
             .then(data => {
                 alert(`Registro exitoso. Estado asignado: ${data.estado}`);
                 limpiarPantalla();
+            })
+            .catch(error => {
+                document.getElementById('mensaje-sistema').innerText = error.message;
             });
         }
 
