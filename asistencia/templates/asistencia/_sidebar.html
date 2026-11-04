@@ -1,0 +1,49 @@
+<header class="topbar">
+    <button class="btn-menu" id="btn-menu" type="button" aria-label="Abrir menú" aria-controls="sidebar">
+        <svg class="icono-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+    <strong>I.E. 7224</strong>
+</header>
+
+<aside class="sidebar" id="sidebar">
+    <div class="marca"><strong>I.E. 7224</strong><span>Control de asistencia</span></div>
+    <ul class="menu">
+        <li class="menu-grupo">Operación</li>
+        <li><a href="{% url 'pantalla_registro' %}"{% if activo == 'registro' %} class="activo" aria-current="page"{% endif %}>
+            <svg class="icono-menu" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5"/></svg>Registro de ingreso
+        </a></li>
+        <li><a href="{% url 'asistencias_fecha' %}"{% if activo == 'asistencias' %} class="activo" aria-current="page"{% endif %}>
+            <svg class="icono-menu" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M8 14h.01M12 14h.01M16 14h.01"/></svg>Asistencias por fecha
+        </a></li>
+        {% if es_director %}
+        <li class="menu-grupo">Administración</li>
+        <li><a href="{% url 'dashboard' %}"{% if activo == 'dashboard' %} class="activo" aria-current="page"{% endif %}>
+            <svg class="icono-menu" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Panel de métricas
+        </a></li>
+        <li><a href="{% url 'gestion_estudiantes' %}"{% if activo == 'gestion' %} class="activo" aria-current="page"{% endif %}>
+            <svg class="icono-menu" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2"/><path d="M3 20c0-3 2.5-5 6-5s6 2 6 5M15 15c3 0 5 1.8 5 5"/></svg>Gestión de estudiantes
+        </a></li>
+        <li><a href="{% url 'importar_estudiantes' %}"{% if activo == 'importar' %} class="activo" aria-current="page"{% endif %}>
+            <svg class="icono-menu" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M8 7l4-4 4 4M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>Importar estudiantes
+        </a></li>
+        <li><a href="{% url 'fotos_lote' %}"{% if activo == 'fotos' %} class="activo" aria-current="page"{% endif %}>
+            <svg class="icono-menu" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="15" rx="2"/><circle cx="8" cy="10" r="2"/><path d="m21 16-5-5-7 7"/></svg>Fotos en lote
+        </a></li>
+        <li><a href="{% url 'gestion_usuarios' %}"{% if activo == 'usuarios' %} class="activo" aria-current="page"{% endif %}>
+            <svg class="icono-menu" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3 2.5-5 6-5s6 2 6 5M17 11l1.5 1L21 9"/></svg>Usuarios
+        </a></li>
+        {% endif %}
+    </ul>
+    <div class="sidebar-pie">
+        <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button class="btn-sidebar" type="submit"><svg class="icono-menu" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 17l5-5-5-5M15 12H3M21 19V5a2 2 0 0 0-2-2h-5"/></svg>Cerrar sesión</button>
+        </form>
+        <span>Módulo de tutores y puerta</span>
+    </div>
+</aside>
+<div class="scrim" id="scrim"></div>
+<script>
+    document.getElementById('btn-menu').addEventListener('click', () => document.body.classList.toggle('menu-abierto'));
+    document.getElementById('scrim').addEventListener('click', () => document.body.classList.remove('menu-abierto'));
+</script>

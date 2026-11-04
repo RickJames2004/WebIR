@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Usuarios - I.E. 7224</title><link rel="stylesheet" href="{% static 'global.css' %}"></head>
+<body>
+    {% include "asistencia/_sidebar.html" with activo="usuarios" %}
+
+    <main class="contenido"><div class="pagina-cab"><h1>Usuarios auxiliares</h1></div>
+{% if error %}<div class="alerta alerta-error">{{ error }}</div>{% endif %}
+<section class="panel"><h2>Crear auxiliar</h2><form method="post" class="form-importacion">{% csrf_token %}<input type="hidden" name="accion" value="crear"><label class="etiqueta">Usuario<input class="campo-formulario" name="username" required></label><label class="etiqueta">Nombres<input class="campo-formulario" name="nombres" required></label><label class="etiqueta">Apellidos<input class="campo-formulario" name="apellidos" required></label><label class="etiqueta">Contraseña<input class="campo-formulario" type="password" name="password" required></label><button class="btn btn-filtrar">Crear auxiliar</button></form></section>
+<section class="panel"><h2>Auxiliares</h2><div class="tabla-wrap"><table><tr><th>Usuario</th><th>Nombre</th><th>Estado</th><th>Acciones</th></tr>{% for usuario in usuarios %}<tr><td>{{ usuario.username }}</td><td>{{ usuario.first_name }} {{ usuario.last_name }}</td><td>{{ usuario.is_active|yesno:"Activo,Inactivo" }}</td><td><form method="post" class="acciones-inline">{% csrf_token %}<input type="hidden" name="usuario" value="{{ usuario.pk }}"><input type="hidden" name="accion" value="estado"><button>{{ usuario.is_active|yesno:"Desactivar,Activar" }}</button></form><form method="post" class="acciones-inline">{% csrf_token %}<input type="hidden" name="usuario" value="{{ usuario.pk }}"><input type="hidden" name="accion" value="reset"><input name="password" type="password" required placeholder="Nueva contraseña"><button>Restablecer</button></form></td></tr>{% empty %}<tr><td colspan="4">No hay auxiliares.</td></tr>{% endfor %}</table></div></section></main>
+</body></html>

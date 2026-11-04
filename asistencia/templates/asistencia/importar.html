@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Importar estudiantes - I.E. 7224</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'global.css' %}">
+</head>
+<body>
+        {% include "asistencia/_sidebar.html" with activo="importar" %}
+
+    <main class="contenido">
+        <div class="pagina-cab">
+            <div><h1>Importar estudiantes</h1><p>Carga o actualiza estudiantes desde un archivo CSV.</p></div>
+        </div>
+        <section class="panel importacion-panel">
+            <h2>Seleccionar archivo CSV</h2>
+            <p class="ayuda">Usa UTF-8 y las columnas: dni, apellidos, nombres, grado, seccion.</p>
+            <a class="enlace-descarga" href="{% url 'plantilla_csv' %}">Descargar plantilla CSV de ejemplo</a>
+            <form method="post" enctype="multipart/form-data" class="form-importacion">
+                {% csrf_token %}
+                <label class="etiqueta" for="id_archivo_csv">Archivo CSV</label>
+                <input class="campo-formulario" type="file" id="id_archivo_csv" name="archivo_csv" accept=".csv,text/csv" required>
+                <button class="btn btn-filtrar" type="submit">Importar archivo</button>
+            </form>
+        </section>
+        {% if resumen %}
+        <section class="panel resumen-panel">
+            <h2>Resultado de la importación</h2>
+            <div class="resumen-grid">
+                <div><strong>{{ resumen.creados }}</strong><span>creados</span></div>
+                <div><strong>{{ resumen.actualizados }}</strong><span>actualizados</span></div>
+                <div class="rojo"><strong>{{ resumen.errores|length }}</strong><span>con errores</span></div>
+            </div>
+            {% if resumen.errores %}
+            <h3>Errores encontrados</h3>
+            <ul class="lista-errores">
+                {% for error in resumen.errores %}<li>Línea {{ error.linea }}: {{ error.motivo }}</li>{% endfor %}
+            </ul>
+            {% endif %}
+        </section>
+        {% endif %}
+    </main>
+</body>
+</html>

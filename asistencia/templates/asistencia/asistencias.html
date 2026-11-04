@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Asistencias por fecha - I.E. 7224</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'global.css' %}">
+</head>
+<body>
+        {% include "asistencia/_sidebar.html" with activo="asistencias" %}
+
+    <main class="contenido">
+        <div class="pagina-cab">
+            <div><h1>Asistencias por fecha</h1><p>{{ fecha_legible|capfirst }}</p></div>
+            <a class="btn btn-export" href="{% url 'exportar_reporte_csv' %}?fecha={{ fecha|date:'Y-m-d' }}">Exportar este día (CSV)</a>
+        </div>
+        {% for message in messages %}<div class="alerta alerta-{{ message.tags }}" role="alert">{{ message }}</div>{% endfor %}
+        {% if es_auxiliar and not puede_corregir %}<div class="alerta alerta-error">Las correcciones se hacen desde dirección.</div>{% endif %}
+        <section class="panel barra-fecha">
+            <form method="get" class="filtros-grid">
+                <div class="campo-filtro campo-fecha"><label class="etiqueta" for="id_fecha">Fecha</label><div class="selector-fecha"><input class="campo-formulario" id="id_fecha" type="date" name="fecha" value="{{ fecha|date:'Y-m-d' }}" max="{{ hoy|date:'Y-m-d' }}"><div class="navegacion-fecha">
+                    <a class="btn btn-cancel" href="?fecha={{ fecha_anterior|date:'Y-m-d' }}&grado={{ grado|urlencode }}&seccion={{ seccion|urlencode }}&estado={{ estado|urlencode }}">Día anterior</a><a class="btn btn-filtrar" href="{% url 'asistencias_fecha' %}">Hoy</a>{% if fecha < hoy %}<a class="btn btn-cancel" href="?fecha={{ fecha_siguiente|date:'Y-m-d' }}&grado={{ grado|urlencode }}&seccion={{ seccion|urlencode }}&estado={{ estado|urlencode }}">Día siguiente</a>{% else %}<button class="btn btn-cancel" type="button" disabled>Día siguiente</button>{% endif %}
+                </div></div></div>
+                <div class="campo-filtro"><label class="etiqueta" for="id_grado">Grado</label><select class="select" id="id_grado" name="grado">
+                    <option value="">Todos</option>
+                    {% for item in grados %}<option value="{{ item }}" {% if item == grado %}selected{% endif %}>{{ item }}</option>{% endfor %}
+                </select></div>
+                <div class="campo-filtro"><label class="etiqueta" for="id_seccion">Sección</label><select class="select" id="id_seccion" name="seccion">
+                    <option value="">Todas</option>
+                    {% for item in secciones %}<option value="{{ item }}" {% if item == seccion %}selected{% endif %}>{{ item }}</option>{% endfor %}
+                </select></div>
+                <div class="campo-filtro"><label class="etiqueta" for="id_estado">Estado</label><select class="select" id="id_estado" name="estado">
+                    <option value="">Todos</option>
+                    <option value="PUNTUAL" {% if estado == 'PUNTUAL' %}selected{% endif %}>Puntual</option>
+                    <option value="TARDANZA" {% if estado == 'TARDANZA' %}selected{% endif %}>Tardanza</option>
+                    <option value="FALTA" {% if estado == 'FALTA' %}selected{% endif %}>Falta</option>
+                    <option value="ANULADO" {% if estado == 'ANULADO' %}selected{% endif %}>Anulado</option>
+                </select></div>
+                <div class="acciones-filtros"><button class="btn btn-filtrar" type="submit">Aplicar filtros</button><a class="btn btn-cancel" href="{% url 'asistencias_fecha' %}?fecha={{ fecha|date:'Y-m-d' }}">Limpiar</a></div>
+            </form>
+        </section>
+        <div class="cards-grid">
+            <div class="card"><h3>Puntuales</h3><div class="number">{{ conteos.PUNTUAL|default:0 }}</div></div>
+            <div class="card naranja"><h3>Tardanzas</h3><div class="number">{{ conteos.TARDANZA|default:0 }}</div></div>
+            <div class="card rojo"><h3>Faltas</h3><div class="number">{{ conteos.FALTA|default:0 }}</div></div>
+            <div class="card"><h3>Anulados</h3><div class="number">{{ conteos.ANULADO|default:0 }}</div></div>
+            {% if mostrar_sin_registro %}<div class="card"><h3>Sin registro</h3><div class="number">{{ sin_registro|length }}</div></div>{% endif %}
+        </div>
+        <section class="panel">
+            <h2>Registros del día</h2>
+            <div class="tabla-wrap">
+                <table>
+                    <thead><tr><th>Hora</th><th>DNI</th><th>Estudiante</th><th>Grado y sección</th><th>Estado</th><th>Método</th><th>Registrado por</th>{% if puede_corregir %}<th>Acciones</th>{% endif %}</tr></thead>
+                    <tbody>
+                    {% for registro in pagina %}
+                        <tr>
+                            <td>{{ registro.fecha_hora|date:'H:i' }}</td><td>{{ registro.estudiante.dni }}</td>
+                            <td>{{ registro.estudiante.apellidos }}, {{ registro.estudiante.nombres }}</td>
+                            <td>{{ registro.estudiante.grado }} "{{ registro.estudiante.seccion }}"</td>
+                            <td><span class="estado-badge estado-{{ registro.estado|lower }}">{{ registro.get_estado_display }}</span>{% if registro.lista_correcciones %}<details class="auditoria"><summary class="badge-corregido">Corregido</summary>{% for correccion in registro.lista_correcciones %}<div>{{ correccion.usuario }} · {{ correccion.fecha_hora|date:'d/m/Y H:i' }} · {{ correccion.estado_anterior|default:'manual' }} → {{ correccion.estado_nuevo }} · {{ correccion.motivo }}</div>{% endfor %}</details>{% endif %}</td>
+                            <td>{{ registro.get_metodo_display }}</td><td>{{ registro.supervisor|default:'Sistema' }}</td>
+                            {% if puede_corregir %}<td class="acciones-tabla"><details><summary>Acciones</summary>
+                                <form method="post" action="{% url 'corregir_asistencia' registro.pk %}">
+                                    {% csrf_token %}<input type="hidden" name="fecha" value="{{ fecha|date:'Y-m-d' }}"><input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                    <input name="motivo" placeholder="Motivo (mín. 5)" required minlength="5">
+                                    {% if registro.estado != 'PUNTUAL' %}<button name="estado" value="PUNTUAL" type="submit">Puntual</button>{% endif %}{% if registro.estado != 'TARDANZA' %}<button name="estado" value="TARDANZA" type="submit">Tardanza</button>{% endif %}{% if registro.estado != 'FALTA' %}<button name="estado" value="FALTA" type="submit">Falta</button>{% endif %}
+                                </form>
+                                {% if registro.estado != 'ANULADO' %}<form method="post" action="{% url 'anular_asistencia' registro.pk %}" onsubmit="return confirm('¿Anular este registro?')">{% csrf_token %}<input type="hidden" name="fecha" value="{{ fecha|date:'Y-m-d' }}"><input type="hidden" name="next" value="{{ request.get_full_path }}"><input name="motivo" placeholder="Motivo (mín. 5)" required minlength="5"><button class="btn-peligro" type="submit">Anular</button></form>
+                                {% else %}<form method="post" action="{% url 'restaurar_asistencia' registro.pk %}">{% csrf_token %}<input type="hidden" name="fecha" value="{{ fecha|date:'Y-m-d' }}"><input type="hidden" name="next" value="{{ request.get_full_path }}"><input name="motivo" placeholder="Motivo (mín. 5)" required minlength="5"><button type="submit" name="estado" value="PUNTUAL">Restaurar puntual</button><button type="submit" name="estado" value="TARDANZA">Restaurar tardanza</button><button type="submit" name="estado" value="FALTA">Restaurar falta</button></form>{% endif %}
+                            </details></td>{% endif %}
+                        </tr>
+                    {% empty %}<tr><td colspan="8" class="vacio">No hay registros para esta fecha.</td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% if pagina.has_other_pages %}
+            <nav class="paginacion">
+                {% if pagina.has_previous %}<a href="?fecha={{ fecha|date:'Y-m-d' }}&grado={{ grado|urlencode }}&seccion={{ seccion|urlencode }}&estado={{ estado|urlencode }}&page={{ pagina.previous_page_number }}">Anterior</a>{% endif %}
+                <span>Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
+                {% if pagina.has_next %}<a href="?fecha={{ fecha|date:'Y-m-d' }}&grado={{ grado|urlencode }}&seccion={{ seccion|urlencode }}&estado={{ estado|urlencode }}&page={{ pagina.next_page_number }}">Siguiente</a>{% endif %}
+            </nav>
+            {% endif %}
+        </section>
+        {% if mostrar_sin_registro %}
+        <section class="panel panel-sin-registro">
+            <h2>Sin registro</h2>
+            {% if es_director %}<form method="post" action="{% url 'marcar_faltas_masivas' %}" onsubmit="return confirm('¿Marcar falta a {{ sin_registro|length }} estudiantes?')">{% csrf_token %}<input type="hidden" name="fecha" value="{{ fecha|date:'Y-m-d' }}"><input type="hidden" name="grado" value="{{ grado }}"><input type="hidden" name="seccion" value="{{ seccion }}"><input type="hidden" name="next" value="{{ request.get_full_path }}"><input name="motivo" placeholder="Motivo (mín. 5)" required minlength="5"><button class="btn btn-peligro" type="submit">Marcar falta a todos los pendientes</button></form>{% endif %}
+            <div class="tabla-wrap"><table><thead><tr><th>DNI</th><th>Estudiante</th><th>Grado y sección</th>{% if puede_corregir %}<th>Acciones</th>{% endif %}</tr></thead><tbody>
+            {% for estudiante in sin_registro %}<tr><td>{{ estudiante.dni }}</td><td>{{ estudiante.apellidos }}, {{ estudiante.nombres }}</td><td>{{ estudiante.grado }} "{{ estudiante.seccion }}"</td>{% if puede_corregir %}<td><form method="post" action="{% url 'registrar_asistencia_manual' estudiante.dni %}">{% csrf_token %}<input type="hidden" name="fecha" value="{{ fecha|date:'Y-m-d' }}"><input type="hidden" name="next" value="{{ request.get_full_path }}"><input name="motivo" placeholder="Motivo" required minlength="5"><button name="estado" value="PUNTUAL" type="submit">Puntual</button><button name="estado" value="TARDANZA" type="submit">Tardanza</button><button name="estado" value="FALTA" type="submit" class="btn-peligro">Falta</button></form></td>{% endif %}</tr>{% empty %}<tr><td colspan="4" class="vacio">Todos los estudiantes tienen registro.</td></tr>{% endfor %}
+            </tbody></table></div>
+        </section>
+        {% endif %}
+    </main>
+</body>
+</html>

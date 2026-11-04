@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Gestión de estudiantes - I.E. 7224</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'global.css' %}">
+</head>
+<body>
+        {% include "asistencia/_sidebar.html" with activo="gestion" %}
+
+    <main class="contenido">
+        <div class="pagina-cab">
+            <div>
+                <h1>Gestión de estudiantes</h1>
+                <p>{{ total_estudiantes }} estudiante{{ total_estudiantes|pluralize }} registrado{{ total_estudiantes|pluralize }}</p>
+            </div>
+            <a href="{% url 'importar_estudiantes' %}" class="btn btn-filtrar">Importar estudiantes</a>
+        </div>
+        <section class="panel filtros">
+            <form method="get">
+                <label class="etiqueta" for="id_q">Buscar por DNI o apellido</label>
+                <input class="campo-busqueda" type="search" id="id_q" name="q" value="{{ busqueda }}" placeholder="Ej. 74852316 o Pérez">
+                <button class="btn btn-filtrar" type="submit">Buscar</button>
+                {% if busqueda %}<a class="quitar-filtros" href="{% url 'gestion_estudiantes' %}">Limpiar</a>{% endif %}
+            </form>
+        </section>
+        <section class="panel">
+            <div class="tabla-wrap">
+                <table>
+                    <thead><tr><th>Foto</th><th>DNI</th><th>Apellidos</th><th>Nombres</th><th>Grado</th><th>Sección</th><th>Acciones</th></tr></thead>
+                    <tbody>
+                        {% for estudiante in pagina %}
+                        <tr>
+                            <td>
+                                <img class="miniatura-estudiante" src="{% if estudiante.foto %}{{ estudiante.foto.url }}{% else %}{% static 'foto-default.svg' %}{% endif %}" alt="Foto de {{ estudiante.nombres }}">
+                            </td>
+                            <td>{{ estudiante.dni }}</td>
+                            <td>{{ estudiante.apellidos }}</td>
+                            <td>{{ estudiante.nombres }}</td>
+                            <td>{{ estudiante.grado }}</td>
+                            <td>{{ estudiante.seccion }}</td>
+                            <td><a class="btn btn-pequeno" href="{% url 'foto_estudiante' estudiante.dni %}">Editar</a></td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="7" class="vacio">No se encontraron estudiantes.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% if pagina.has_other_pages %}
+            <nav class="paginacion" aria-label="Paginación">
+                {% if pagina.has_previous %}<a href="?q={{ busqueda|urlencode }}&page={{ pagina.previous_page_number }}">Anterior</a>{% endif %}
+                <span>Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
+                {% if pagina.has_next %}<a href="?q={{ busqueda|urlencode }}&page={{ pagina.next_page_number }}">Siguiente</a>{% endif %}
+            </nav>
+            {% endif %}
+        </section>
+    </main>
+</body>
+</html>

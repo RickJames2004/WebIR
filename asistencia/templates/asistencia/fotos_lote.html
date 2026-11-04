@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Fotos en lote - I.E. 7224</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'global.css' %}">
+</head>
+<body>
+        {% include "asistencia/_sidebar.html" with activo="fotos" %}
+
+    <main class="contenido">
+        <div class="pagina-cab"><div><h1>Fotos en lote</h1><p>Cada archivo debe llamarse DNI.ext, por ejemplo 74852316.jpg.</p></div></div>
+        <section class="panel">
+            <form method="post" enctype="multipart/form-data" class="form-importacion">
+                {% csrf_token %}
+                <label class="etiqueta" for="id_fotos">Selecciona imágenes</label>
+                <input class="campo-formulario" id="id_fotos" type="file" name="fotos" accept="image/*" multiple required>
+                <p class="ayuda">Formatos JPG, JPEG, PNG o WEBP. Máximo 2 MB por imagen.</p>
+                <button class="btn btn-filtrar" type="submit">Asignar fotos</button>
+                <a class="btn btn-cancel" href="{% url 'gestion_estudiantes' %}">Volver a gestión</a>
+            </form>
+        </section>
+        {% if resumen %}
+        <section class="panel resumen-panel">
+            <h2>Resultado</h2>
+            <div class="resumen-grid"><div><strong>{{ resumen.asignadas }}</strong><span>asignadas</span></div><div class="rojo"><strong>{{ resumen.rechazadas|length }}</strong><span>rechazadas</span></div></div>
+            {% if resumen.rechazadas %}<ul class="lista-errores">{% for error in resumen.rechazadas %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+        </section>
+        {% endif %}
+    </main>
+</body>
+</html>
