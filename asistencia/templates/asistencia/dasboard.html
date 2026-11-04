@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Panel de Métricas - I.E. 7224</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center; }
+        .card h3 { margin: 0; color: #555; font-size: 14px; }
+        .card .number { font-size: 32px; font-weight: bold; margin: 10px 0; color: #004d40; }
+        .table-container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border-bottom: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: #004d40; color: white; }
+        .btn-export { background: #2e7d32; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>Panel de Métricas de Asistencia</h2>
+        <div>
+            <a href="/" style="margin-right: 15px; color: #004d40;">Ir al Módulo de Puerta</a>
+            <a href="/exportar_reporte/" class="btn-export">⬇ Exportar a Excel (CSV)</a>
+        </div>
+    </div>
+
+    <!-- Indicadores / Métricas (CU08) -->
+    <div class="cards-grid">
+        <div class="card">
+            <h3>Asistencia de Hoy</h3>
+            <div class="number">{{ porcentaje_asistencia }}%</div>
+            <small>{{ asistencias_hoy }} de {{ total_estudiantes }} estudiantes</small>
+        </div>
+        <div class="card">
+            <h3>Inasistencias de Hoy</h3>
+            <div class="number" style="color: #c62828;">{{ inasistencias_hoy }}</div>
+        </div>
+        <div class="card">
+            <h3>Tardanzas de Hoy</h3>
+            <div class="number" style="color: #ef6c00;">{{ tardanzas_hoy }}</div>
+        </div>
+        <div class="card">
+            <h3>Total Estudiantes</h3>
+            <div class="number">{{ total_estudiantes }}</div>
+        </div>
+    </div>
+
+    <!-- Tabla de Reportes (CU06) -->
+    <div class="table-container">
+        <h3>Reporte de Estudiantes en Alerta</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>DNI</th>
+                    <th>Estudiante</th>
+                    <th>Grado y Sección</th>
+                    <th>Registros Anulados / Observados</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in estudiantes_con_faltas %}
+                <tr>
+                    <td>{{ e.dni }}</td>
+                    <td>{{ e.apellidos }}, {{ e.nombres }}</td>
+                    <td>{{ e.grado }} "{{ e.seccion }}"</td>
+                    <td><b style="color: #c62828;">{{ e.total_faltas }}</b></td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4">No hay registros observados.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

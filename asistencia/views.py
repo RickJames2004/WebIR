@@ -4,6 +4,9 @@ from django.utils import timezone
 from datetime import time
 from .models import Estudiante, RegistroAsistencia
 import json
+import csv
+from django.http import HttpResponse
+from django.db.models import Count, Q
 
 def pantalla_registro(request):
     # Carga la plantilla visual para el supervisor
@@ -56,3 +59,60 @@ def confirmar_ingreso(request):
             supervisor=request.user if request.user.is_authenticated else None
         )
         return JsonResponse({'success': True, 'estado': estado})
+    
+    def dashboard(request):
+        hoy = timezone.localdate()
+        total_estudiantes = Estudiante.objects.filter(activo=True).count()
+        
+        # Asistencias del día
+        asistencias_hoy = RegistroAsistencia.objects.filter(
+            fecha_hora__date=hoy, 
+            estado__in=['PUNTUAL', 'TARDANZA']
+        ).count()
+        
+        tardanzas_hoy = RegistroAsistencia.objects.filter(
+            fecha_hora__date=hoy, 
+            estado='TARDANZA'
+        ).count()
+        
+        inasistencias_hoy = max(0, total_estudiantes - asistencias_hoy)
+        porcentaje_asistencia = round((asistencias_hoy / total_estudiantes * 100), 1) if total_estudiantes > 0 else 0
+
+        # Estudiantes con más faltas (Ranking - Caso CU06)
+        estudiantes_con_faltas = Estudiante.objects.filter(activo=True).annotate(
+            total_faltas=Count('asistencias', filter=Q(asistencias__estado='ANULADO'))
+        ).order_by('-total_faltas')[:10]
+
+        contexto = {
+            'total_estudiantes': total_estudiantes,
+            'asistencias_hoy': asistencias_hoy,
+            'tardanzas_hoy': tardanzas_hoy,
+            'inasistencias_hoy': inasistencias_hoy,
+            'porcentaje_asistencia': porcentaje_asistencia,
+            'estudiantes_con_faltas': estudiantes_con_faltas,
+        }
+        return render(request, 'asistencia/dashboard.html', contexto)
+
+
+def exportar_reporte_csv(request):
+    # Caso CU07: Exportar reporte a Excel/CSV
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="reporte_asistencia.csv"'
+    
+    writer = csv.writer(response)
+    writer.writerow(['DNI', 'Apellidos', 'Nombres', 'Grado', 'Seccion', 'Fecha y Hora', 'Estado', 'Metodo'])
+    
+    registros = RegistroAsistencia.objects.select_related('estudiante').all().order_by('-fecha_hora')
+    for reg in registros:
+        writer.writerow([
+            reg.estudiante.dni,
+            reg.estudiante.apellidos,
+            reg.estudiante.nombres,
+            reg.estudiante.grado,
+            reg.estudiante.seccion,
+            reg.fecha_hora.strftime('%Y-%m-%d %H:%M:%S'),
+            reg.estado,
+            reg.metodo
+        ])
+        
+    return response
