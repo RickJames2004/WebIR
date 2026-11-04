@@ -45,9 +45,10 @@ def confirmar_ingreso(request):
         
         estudiante = Estudiante.objects.get(dni=dni)
         
-        if accion == 'anular':
-            estado = 'ANULADO'
+        if accion == 'falta':
+            estado = 'FALTA'
         else:
+            # Si la acción es confirmar asistencia, calcula puntualidad
             hora_actual = timezone.localtime().time()
             hora_limite = time(8, 0, 0)
             estado = 'PUNTUAL' if hora_actual <= hora_limite else 'TARDANZA'
@@ -64,14 +65,29 @@ def confirmar_ingreso(request):
 
 def dashboard(request):
     hoy = timezone.localdate()
-    total_estudiantes = Estudiante.objects.filter(activo=True).count()
     
+    # 1. Capturar los filtros desde la URL (si existen)
+    grado_filtro = request.GET.get('grado', '')
+    seccion_filtro = request.GET.get('seccion', '')
+    
+    # 2. Filtrar los estudiantes base
+    estudiantes = Estudiante.objects.filter(activo=True)
+    if grado_filtro:
+        estudiantes = estudiantes.filter(grado=grado_filtro)
+    if seccion_filtro:
+        estudiantes = estudiantes.filter(seccion=seccion_filtro)
+        
+    total_estudiantes = estudiantes.count()
+    
+    # 3. Filtrar las asistencias solo para los estudiantes seleccionados
     asistencias_hoy = RegistroAsistencia.objects.filter(
+        estudiante__in=estudiantes,
         fecha_hora__date=hoy, 
         estado__in=['PUNTUAL', 'TARDANZA']
     ).count()
     
     tardanzas_hoy = RegistroAsistencia.objects.filter(
+        estudiante__in=estudiantes,
         fecha_hora__date=hoy, 
         estado='TARDANZA'
     ).count()
@@ -79,9 +95,14 @@ def dashboard(request):
     inasistencias_hoy = max(0, total_estudiantes - asistencias_hoy)
     porcentaje_asistencia = round((asistencias_hoy / total_estudiantes * 100), 1) if total_estudiantes > 0 else 0
 
-    estudiantes_con_faltas = Estudiante.objects.filter(activo=True).annotate(
-        total_faltas=Count('asistencias', filter=Q(asistencias__estado='ANULADO'))
+    # 4. Obtener estudiantes con faltas registradas de esa selección
+    estudiantes_con_faltas = estudiantes.annotate(
+        total_faltas=Count('asistencias', filter=Q(asistencias__estado='FALTA'))
     ).order_by('-total_faltas')[:10]
+
+    # 5. Obtener listas únicas de grados y secciones para llenar los <select>
+    grados_disp = Estudiante.objects.filter(activo=True).values_list('grado', flat=True).distinct().order_by('grado')
+    secciones_disp = Estudiante.objects.filter(activo=True).values_list('seccion', flat=True).distinct().order_by('seccion')
 
     contexto = {
         'total_estudiantes': total_estudiantes,
@@ -90,6 +111,10 @@ def dashboard(request):
         'inasistencias_hoy': inasistencias_hoy,
         'porcentaje_asistencia': porcentaje_asistencia,
         'estudiantes_con_faltas': estudiantes_con_faltas,
+        'grados_disponibles': grados_disp,
+        'secciones_disponibles': secciones_disp,
+        'grado_seleccionado': grado_filtro,
+        'seccion_seleccionada': seccion_filtro,
     }
     return render(request, 'asistencia/dashboard.html', contexto)
 

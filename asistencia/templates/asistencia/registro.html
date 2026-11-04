@@ -3,19 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <title>Módulo de Registro - I.E. 7224</title>
+    <!-- 1. En la sección <style> ajusta el ancho de los botones -->
     <style>
         body { font-family: Arial, sans-serif; background-color: #f4f7f6; padding: 20px; }
         .container { display: flex; gap: 20px; max-width: 900px; margin: auto; }
         .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); width: 50%; }
         input { width: 100%; padding: 10px; font-size: 18px; text-align: center; border: 2px dashed #004d40; margin-bottom: 10px; }
         #foto-estudiante { max-width: 150px; border-radius: 8px; display: none; }
-        .btn { padding: 10px 20px; color: white; border: none; border-radius: 5px; cursor: pointer; width: 48%; font-size: 16px; }
+        .btn { padding: 10px; color: white; border: none; border-radius: 5px; cursor: pointer; width: 32%; font-size: 14px; font-weight: bold; }
         .btn-confirm { background: #1976d2; }
-        .btn-cancel { background: #d32f2f; }
+        .btn-falta { background: #d84315; }
+        .btn-cancel { background: #757575; }
         .hidden { display: none; }
     </style>
 </head>
 <body>
+    <!-- Barra de navegación superior -->
+    <div style="max-width: 900px; margin: 0 auto 20px auto; text-align: right;">
+        <a href="/dashboard/" style="background: #004d40; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">📊 Ir al Panel de Tutores y Métricas</a>
+    </div>
     <div class="container">
         <!-- Panel Izquierdo: Lector -->
         <div class="card">
@@ -32,23 +38,25 @@
             <h3 id="nombre-estudiante"></h3>
             <p id="grado-estudiante"></p>
             
-            <div id="botones-accion" class="hidden">
-                <button class="btn btn-confirm" onclick="enviarRegistro('confirmar')">✔ Confirmar identidad</button>
-                <button class="btn btn-cancel" onclick="enviarRegistro('anular')">✖ No coincide (anular)</button>
+            <!-- 2. Reemplaza el <div id="botones-accion"> por este -->
+            <div id="botones-accion" class="hidden" style="display: flex; justify-content: space-between;">
+                <button class="btn btn-confirm" onclick="enviarRegistro('confirmar')">✔ Asistencia</button>
+                <button class="btn btn-falta" onclick="enviarRegistro('falta')">⚠ Poner Falta</button>
+                <button class="btn btn-cancel" onclick="enviarRegistro('anular')">✖ Anular / Limpiar</button>
             </div>
         </div>
     </div>
 
+    <!-- 3. Reemplaza el <script> completo -->
     <script>
         const inputDni = document.getElementById('input-dni');
         let dniActual = '';
 
-        // El lector de barras simula la tecla "Enter" al terminar de leer
         inputDni.addEventListener('keypress', function (e) {
             if (e.key === 'Enter') {
                 dniActual = this.value;
                 buscarEstudiante(dniActual);
-                this.value = ''; // Limpiar para el siguiente escaneo
+                this.value = ''; 
             }
         });
 
@@ -62,7 +70,7 @@
 
                     if (data.encontrado) {
                         if (data.ya_ingreso) {
-                            mensaje.innerText = "Este estudiante ya registró su ingreso hoy.";
+                            mensaje.innerText = "Este estudiante ya registró su asistencia o falta hoy.";
                             botones.classList.add('hidden');
                         } else {
                             mensaje.innerText = "";
@@ -74,36 +82,43 @@
                         }
                     } else {
                         mensaje.innerText = data.mensaje;
-                        foto.style.display = "none";
-                        botones.classList.add('hidden');
-                        document.getElementById('nombre-estudiante').innerText = "";
-                        document.getElementById('grado-estudiante').innerText = "";
+                        limpiarPantalla();
                     }
                 });
         }
 
         function enviarRegistro(accion) {
+            // Lógica de anulación: Si presiona anular, no enviamos nada al backend, solo limpiamos la UI
+            if (accion === 'anular') {
+                limpiarPantalla();
+                return;
+            }
+
+            // Para Asistencia y Falta, enviamos los datos
             fetch('/api/confirmar_ingreso/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken') // Requisito de seguridad de Django
+                    'X-CSRFToken': getCookie('csrftoken')
                 },
                 body: JSON.stringify({ dni: dniActual, accion: accion })
             })
             .then(response => response.json())
             .then(data => {
-                alert(`Registro exitoso. Estado: ${data.estado}`);
-                // Reiniciar interfaz para el siguiente alumno
-                document.getElementById('foto-estudiante').style.display = "none";
-                document.getElementById('botones-accion').classList.add('hidden');
-                document.getElementById('nombre-estudiante').innerText = "";
-                document.getElementById('grado-estudiante').innerText = "";
-                inputDni.focus();
+                alert(`Registro exitoso. Estado asignado: ${data.estado}`);
+                limpiarPantalla();
             });
         }
 
-        // Función auxiliar para obtener el Token CSRF de Django
+        function limpiarPantalla() {
+            document.getElementById('foto-estudiante').style.display = "none";
+            document.getElementById('botones-accion').classList.add('hidden');
+            document.getElementById('nombre-estudiante').innerText = "";
+            document.getElementById('grado-estudiante').innerText = "";
+            inputDni.value = "";
+            inputDni.focus();
+        }
+
         function getCookie(name) {
             let cookieValue = null;
             if (document.cookie && document.cookie !== '') {
