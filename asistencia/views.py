@@ -34,8 +34,8 @@ from .permisos import (
 )
 
 HORA_FALTA = time(8, 0)
-HORA_TARDANZA = time(8, 1)
-HORA_PUNTUAL_LIMITE = time(8, 0)
+HORA_TARDANZA = time(8,30)
+HORA_PUNTUAL_LIMITE = time(8,0)
 HORA_FIN_CLASES = time(15, 30)
 
 # --- Módulo de Registro en Puerta ---
