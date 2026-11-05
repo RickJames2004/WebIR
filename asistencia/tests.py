@@ -1,6 +1,7 @@
-from datetime import datetime, timedelta
+from datetime import datetime, time, timedelta
 from io import BytesIO, StringIO
 import tempfile
+from unittest.mock import patch
 
 from django.test import TestCase
 from django.contrib.auth.models import Group, User
@@ -75,6 +76,39 @@ class RegistroAsistenciaTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()['success'], True)
         self.assertEqual(RegistroAsistencia.objects.get().metodo, 'DNI')
+
+    def test_asigna_estado_segun_hora_de_ingreso(self):
+        self.client.force_login(self.director)
+        fecha = timezone.localdate()
+        casos = [
+            (time(7, 59, 59), 'PUNTUAL'),
+            (time(8, 0), 'PUNTUAL'),
+            (time(8, 0, 1), 'TARDANZA'),
+            (time(15, 29, 59), 'TARDANZA'),
+            (time(15, 30), 'FALTA'),
+            (time(15, 30, 1), 'FALTA'),
+        ]
+
+        for hora, estado_esperado in casos:
+            with self.subTest(hora=hora):
+                RegistroAsistencia.objects.all().delete()
+                ahora = timezone.make_aware(datetime.combine(fecha, hora))
+                with patch('asistencia.views.timezone.now', return_value=ahora):
+                    response = self.client.post(
+                        '/api/confirmar_ingreso/',
+                        data={
+                            'dni': '74852316',
+                            'accion': 'confirmar',
+                            'metodo': 'DNI',
+                        },
+                        content_type='application/json',
+                    )
+
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.json()['estado'], estado_esperado)
+                self.assertEqual(
+                    RegistroAsistencia.objects.get().estado, estado_esperado
+                )
 
     def test_no_permite_dos_registros_el_mismo_dia(self):
         self.client.force_login(self.director)

@@ -34,7 +34,9 @@ from .permisos import (
 )
 
 HORA_FALTA = time(8, 0)
-HORA_TARDANZA = time(8, 30)
+HORA_TARDANZA = time(8, 1)
+HORA_PUNTUAL_LIMITE = time(8, 0)
+HORA_FIN_CLASES = time(15, 30)
 
 # --- Módulo de Registro en Puerta ---
 
@@ -124,7 +126,12 @@ def confirmar_ingreso(request):
         estado = 'FALTA'
     else:
         hora_actual = timezone.localtime().time()
-        estado = 'PUNTUAL' if hora_actual <= time(8, 0, 0) else 'TARDANZA'
+        if hora_actual >= HORA_FIN_CLASES:
+            estado = 'FALTA'
+        elif hora_actual <= HORA_PUNTUAL_LIMITE:
+            estado = 'PUNTUAL'
+        else:
+            estado = 'TARDANZA'
 
     try:
         with transaction.atomic():
