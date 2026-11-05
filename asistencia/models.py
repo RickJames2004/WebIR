@@ -8,7 +8,7 @@ class Estudiante(models.Model):
     apellidos = models.CharField(max_length=100)
     grado = models.CharField(max_length=10)   # Ej: "3.º"
     seccion = models.CharField(max_length=5)   # Ej: "B"
-    foto = models.ImageField(upload_to='estudiantes/')
+    foto = models.ImageField(upload_to='estudiantes/', blank=True)
     activo = models.BooleanField(default=True)
 
     def __str__(self):

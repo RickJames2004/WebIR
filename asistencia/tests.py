@@ -1,16 +1,54 @@
 from datetime import datetime, timedelta
-from io import BytesIO
+from io import BytesIO, StringIO
 import tempfile
 
 from django.test import TestCase
 from django.contrib.auth.models import Group, User
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.management import call_command
+from django.db.models import Count
 from django.test import override_settings
 from django.utils import timezone
 from PIL import Image
 
 from .models import Estudiante, RegistroAsistencia
 from .models import CorreccionAsistencia
+
+
+class EstudiantesDemoTests(TestCase):
+    def test_completa_secciones_sin_duplicar_estudiantes(self):
+        Estudiante.objects.create(
+            dni='12345678',
+            nombres='Cristiano',
+            apellidos='Penaldo Siu',
+            grado='4to',
+            seccion='B',
+        )
+        Estudiante.objects.create(
+            dni='99000001',
+            nombres='Estudiante demo 01',
+            apellidos='Prueba 1ero A',
+            grado='1ero',
+            seccion='A',
+        )
+
+        call_command('crear_estudiantes_demo', stdout=StringIO())
+
+        conteos = {
+            (item['grado'], item['seccion']): item['total']
+            for item in Estudiante.objects.values('grado', 'seccion')
+            .annotate(total=Count('dni'))
+        }
+        self.assertEqual(len(conteos), 15)
+        self.assertTrue(all(28 <= total <= 31 for total in conteos.values()))
+        self.assertEqual(Estudiante.objects.count(), 441)
+        self.assertEqual(
+            Estudiante.objects.filter(nombres__startswith='Estudiante demo ').count(),
+            0,
+        )
+
+        call_command('crear_estudiantes_demo', stdout=StringIO())
+        self.assertEqual(Estudiante.objects.count(), 441)
 
 
 class RegistroAsistenciaTests(TestCase):
@@ -53,6 +91,22 @@ class RegistroAsistenciaTests(TestCase):
 
         self.assertEqual(response.status_code, 409)
         self.assertEqual(RegistroAsistencia.objects.count(), 1)
+
+    def test_admin_permite_crear_estudiante_sin_foto(self):
+        self.client.force_login(self.director)
+        response = self.client.post('/admin/asistencia/estudiante/add/', {
+            'dni': '76543210',
+            'nombres': 'Luis',
+            'apellidos': 'García',
+            'grado': '4to',
+            'seccion': 'A',
+            'activo': 'on',
+            '_save': 'Guardar',
+        })
+
+        self.assertEqual(response.status_code, 302)
+        estudiante = Estudiante.objects.get(dni='76543210')
+        self.assertFalse(estudiante.foto)
 
     def test_no_permite_nuevo_registro_si_el_anterior_fue_anulado(self):
         self.client.force_login(self.director)
